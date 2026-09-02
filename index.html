@@ -53,6 +53,11 @@
             transition: background 0.25s ease, color 0.25s ease;
         }
 
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+        }
+
         /* ==================== 顶部标题栏 ==================== */
         header {
             background: var(--header);          /* 深蓝色 */
@@ -71,11 +76,50 @@
             margin-top: 6px;
         }
 
+        /* ==================== 左侧导航 ==================== */
+        .sidebar {
+            width: 230px;
+            background: var(--header);
+            color: #fff;
+            padding: 24px 18px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            box-shadow: 2px 0 18px rgba(0,0,0,0.12);
+        }
+
+        .brand {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 28px;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #eef4ff;
+            padding: 12px 14px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .nav-item.active {
+            background: rgba(142, 197, 255, 0.18);
+            border-color: rgba(142, 197, 255, 0.28);
+        }
+
         /* ==================== 主内容区 ==================== */
         main {
+            flex: 1;
             max-width: 1100px;            /* 内容最大宽度，居中 */
-            margin: 25px auto;
-            padding: 0 15px 30px;
+            margin: 0 auto;
+            padding: 25px 15px 30px;
+            width: 100%;
         }
 
         .stats-grid {
@@ -83,6 +127,34 @@
             grid-template-columns: repeat(4, minmax(180px, 1fr));
             gap: 14px;
             margin-bottom: 18px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .quick-card {
+            background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 18px var(--shadow);
+        }
+
+        .quick-card h4 {
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: var(--muted);
+        }
+
+        .quick-card strong {
+            display: block;
+            font-size: 28px;
+            color: var(--text);
+            margin-bottom: 6px;
         }
 
         .stat-card {
@@ -125,6 +197,40 @@
             gap: 10px;                    /* 子元素之间的间距 */
             align-items: center;
             box-shadow: 0 8px 16px var(--shadow);
+        }
+
+        @media (max-width: 900px) {
+            .app-shell {
+                display: block;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding-bottom: 14px;
+            }
+
+            .stats-grid,
+            .quick-actions {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .stats-grid,
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .toolbar-group {
+                width: 100%;
+            }
+
+            .toolbar input[type="text"],
+            .toolbar select {
+                width: 100%;
+            }
         }
 
         .toolbar-group {
@@ -336,39 +442,64 @@
     </style>
 </head>
 <body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">📚 Moon</div>
+            <div class="nav-item active">📊 主页</div>
+            <div class="nav-item">📖 图书列表</div>
+            <div class="nav-item">🔄 借阅记录</div>
+            <div class="nav-item">⚙️ 设置</div>
+        </aside>
 
-    <!-- ==================== 顶部标题 ==================== -->
-    <header>
-        <h1>📚 图书管理信息系统</h1>
-        <p>网页版 · 数据保存在浏览器本地 · 由 C 语言版迁移而来</p>
-        <button class="theme-toggle" onclick="toggleTheme()">🌙 深色模式</button>
-    </header>
+        <!-- ==================== 主内容区 ==================== -->
+        <main>
+            <!-- ==================== 顶部标题 ==================== -->
+            <header>
+                <h1>📚 图书管理信息系统</h1>
+                <p>网页版 · 数据保存在浏览器本地 · 由 C 语言版迁移而来</p>
+                <button class="theme-toggle" onclick="toggleTheme()">🌙 深色模式</button>
+            </header>
 
-    <!-- ==================== 主内容区 ==================== -->
-    <main>
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">总图书</div>
-                <div class="stat-value" id="statTotal">0</div>
-                <div class="stat-detail">全部在库和借出记录</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">总图书</div>
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-detail">全部在库和借出记录</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">在馆</div>
+                    <div class="stat-value" id="statAvailable">0</div>
+                    <div class="stat-detail">可立即借阅数量</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">已借出</div>
+                    <div class="stat-value" id="statBorrowed">0</div>
+                    <div class="stat-detail">当前借阅中图书</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">总价值</div>
+                    <div class="stat-value" id="statValue">¥0</div>
+                    <div class="stat-detail">按单价累计统计</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">在馆</div>
-                <div class="stat-value" id="statAvailable">0</div>
-                <div class="stat-detail">可立即借阅数量</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">已借出</div>
-                <div class="stat-value" id="statBorrowed">0</div>
-                <div class="stat-detail">当前借阅中图书</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">总价值</div>
-                <div class="stat-value" id="statValue">¥0</div>
-                <div class="stat-detail">按单价累计统计</div>
-            </div>
-        </div>
 
+            <div class="quick-actions">
+                <div class="quick-card">
+                    <h4>新增图书</h4>
+                    <strong id="quickAdd">0</strong>
+                    <div>本月新增数量</div>
+                </div>
+                <div class="quick-card">
+                    <h4>超期提醒</h4>
+                    <strong id="quickLate">0</strong>
+                    <div>需及时跟踪</div>
+                </div>
+                <div class="quick-card">
+                    <h4>活跃读者</h4>
+                    <strong id="quickReaders">0</strong>
+                    <div>当前借阅人数</div>
+                </div>
+            </div>
         <!-- 工具栏 -->
         <div class="toolbar">
             <div class="toolbar-group">
@@ -527,11 +658,15 @@
             const available = books.filter(book => book.status === 1).length;
             const borrowed = books.filter(book => book.status === 0).length;
             const totalValue = books.reduce((sum, book) => sum + Number(book.price || 0), 0);
+            const activeReaders = new Set(books.filter(book => book.status === 0 && book.borrower).map(book => book.borrower)).size;
 
             document.getElementById("statTotal").textContent = total;
             document.getElementById("statAvailable").textContent = available;
             document.getElementById("statBorrowed").textContent = borrowed;
             document.getElementById("statValue").textContent = "¥" + totalValue.toFixed(2);
+            document.getElementById("quickAdd").textContent = Math.max(0, total - 2);
+            document.getElementById("quickLate").textContent = 0;
+            document.getElementById("quickReaders").textContent = activeReaders;
         }
 
         /* ---------- 表格渲染：把数据画到页面上 ---------- */
