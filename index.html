@@ -223,13 +223,69 @@
                 grid-template-columns: 1fr;
             }
 
+            .toolbar {
+                flex-direction: column;
+            }
+
             .toolbar-group {
                 width: 100%;
+                flex-direction: row;
             }
 
             .toolbar input[type="text"],
             .toolbar select {
                 width: 100%;
+            }
+            
+            .dialog {
+                padding: 20px 16px;
+            }
+            
+            .form-row label {
+                width: 55px;
+                font-size: 13px;
+            }
+            
+            .form-row input {
+                width: calc(100% - 60px);
+                padding: 6px 8px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            header {
+                padding: 15px 20px;
+            }
+            
+            header h1 {
+                font-size: 20px;
+            }
+            
+            .toolbar {
+                padding: 12px 15px;
+            }
+            
+            .dialog {
+                width: 95vw;
+                max-width: 100%;
+                border-radius: 8px;
+                padding: 18px 12px;
+            }
+            
+            .form-row {
+                margin-bottom: 10px;
+            }
+            
+            .form-row label {
+                width: 50px;
+                font-size: 12px;
+            }
+            
+            .form-row input {
+                width: calc(100% - 55px);
+                padding: 5px 6px;
+                font-size: 12px;
             }
         }
 
@@ -338,8 +394,8 @@
             border-radius: 12px;
             font-size: 12px;
         }
-        .tag-in    { background: #e8f8ee; color: #27ae60; }
-        .tag-out   { background: #fdf3e2; color: #e67e22; }
+        .tag-in    { background: #e8f8ee; color: #1a6e3e; font-weight: 600; }
+        .tag-out   { background: #fdf3e2; color: #b3651d; font-weight: 600; }
 
         /* 空数据提示 */
         .empty-tip {
@@ -391,13 +447,18 @@
         .form-row input {
             width: calc(100% - 75px);
             padding: 8px 10px;
-            border: 1px solid #ccc;
+            border: 2px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
             outline: none;
+            transition: border-color 0.2s;
         }
         .form-row input:focus {
-            border-color: #1e3a5f;
+            border-color: var(--primary);
+        }
+        .form-row input.error {
+            border-color: var(--danger);
+            background: rgba(231, 76, 60, 0.05);
         }
 
         /* 弹窗底部按钮区 */
@@ -415,6 +476,14 @@
             color: #fff;
             border: 1px solid rgba(255,255,255,0.18);
             padding: 8px 12px;
+        }
+        
+        /* Focus states for keyboard navigation */
+        button:focus,
+        input:focus,
+        select:focus {
+            outline: 2px solid var(--primary-2);
+            outline-offset: 2px;
         }
 
         .footer-bar {
@@ -457,7 +526,7 @@
             <header>
                 <h1>📚 图书管理信息系统</h1>
                 <p>网页版 · 数据保存在浏览器本地 · 由 C 语言版迁移而来</p>
-                <button class="theme-toggle" onclick="toggleTheme()">🌙 深色模式</button>
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="切换深色/浅色模式">🌙 深色模式</button>
             </header>
 
             <div class="stats-grid">
@@ -506,7 +575,8 @@
                 <button class="btn-primary" onclick="openAdd()">＋ 新进图书</button>
                 <button class="btn-secondary" onclick="resetBooks()">↺ 重置数据</button>
             </div>
-            <input type="text" id="searchInput" placeholder="🔍 输入名称/编号/作者/借书人搜索…" oninput="render()">
+            <label for="searchInput" style="display: none;">搜索图书</label>
+            <input type="text" id="searchInput" placeholder="🔍 输入名称/编号/作者/借书人搜索…" oninput="render()" aria-label="搜索图书">
             <div class="toolbar-group">
                 <select id="statusSelect" onchange="render()">
                     <option value="all">状态：全部</option>
@@ -522,9 +592,12 @@
             </div>
         </div>
 
+        <!-- 搜索结果计数 -->
+        <div id="resultCount" style="color: var(--muted); margin-bottom: 10px; font-size: 13px; font-weight: 500;"></div>
+
         <!-- 图书表格 -->
         <div class="table-wrap">
-            <table>
+            <table role="table">
                 <thead>
                     <tr>
                         <th>图书编号</th>
@@ -687,6 +760,7 @@
             const keyword = document.getElementById("searchInput").value.trim();
             const sortType = document.getElementById("sortSelect").value;
             const statusType = document.getElementById("statusSelect").value;
+            const resultCountEl = document.getElementById("resultCount");
 
             // 1) 先复制一份数组，避免直接改动原数据
             let list = books.slice();
@@ -749,6 +823,13 @@
 
             tbody.innerHTML = html;
             renderSummary();
+            
+            // 显示搜索结果计数
+            if (keyword || statusType !== "all") {
+                resultCountEl.textContent = `显示 ${list.length} 条结果`;
+            } else {
+                resultCountEl.textContent = `共 ${list.length} 条图书`;
+            }
 
             // 5) 没有数据时显示提示文字
             document.getElementById("emptyTip").style.display =
@@ -783,17 +864,23 @@
         function openAdd() {
             editIndex = null;
             document.getElementById("formTitle").textContent = "新进图书录入";
-            // 清空表单
-            document.getElementById("f_id").value = "";
-            document.getElementById("f_name").value = "";
-            document.getElementById("f_price").value = "";
-            document.getElementById("f_author").value = "";
+            // 清空表单和错误状态
+            const inputs = ["f_id", "f_name", "f_price", "f_author"];
+            inputs.forEach(id => {
+                document.getElementById(id).value = "";
+                document.getElementById(id).classList.remove("error");
+            });
             document.getElementById("formMask").classList.add("show");
+            // 自动焦点到第一个输入框
+            setTimeout(() => document.getElementById("f_id").focus(), 100);
         }
 
         function openEdit(i) {
             editIndex = i;
             document.getElementById("formTitle").textContent = "修改图书信息";
+            // 清除错误状态
+            const inputs = ["f_id", "f_name", "f_price", "f_author"];
+            inputs.forEach(id => document.getElementById(id).classList.remove("error"));
             // 把当前数据填进表单
             const b = books[i];
             document.getElementById("f_id").value = b.id;
@@ -801,6 +888,7 @@
             document.getElementById("f_price").value = b.price;
             document.getElementById("f_author").value = b.author;
             document.getElementById("formMask").classList.add("show");
+            setTimeout(() => document.getElementById("f_name").focus(), 100);
         }
 
         function closeForm() {
@@ -809,10 +897,16 @@
 
         function openBorrow(i) {
             borrowIndex = i;
+            const bookName = books[i].name;
+            const header = document.querySelector("#borrowMask h3");
+            header.textContent = `借阅《${bookName}》`;
             document.getElementById("b_borrower").value = "";
             document.getElementById("b_gender").value = "";
             document.getElementById("b_sid").value = "";
+            // 清除错误状态
+            ["b_borrower", "b_gender", "b_sid"].forEach(id => document.getElementById(id).classList.remove("error"));
             document.getElementById("borrowMask").classList.add("show");
+            setTimeout(() => document.getElementById("b_borrower").focus(), 100);
         }
 
         function closeBorrow() {
@@ -831,6 +925,11 @@
 
         // 新增 / 修改共用这个保存函数
         function saveForm() {
+            // 清除之前的错误状态
+            ["f_id", "f_name", "f_price", "f_author"].forEach(id => {
+                document.getElementById(id).classList.remove("error");
+            });
+            
             // 读取表单输入
             const id = document.getElementById("f_id").value.trim();
             const name = document.getElementById("f_name").value.trim();
@@ -838,16 +937,31 @@
             let author = document.getElementById("f_author").value.trim();
 
             // 校验
-            if (!id)   { showMsg("❌ 编号不能为空"); return; }
-            if (!name) { showMsg("❌ 名称不能为空"); return; }
+            let hasError = false;
+            if (!id) {
+                document.getElementById("f_id").classList.add("error");
+                showMsg("❌ 编号不能为空");
+                hasError = true;
+            }
+            if (!name) {
+                document.getElementById("f_name").classList.add("error");
+                showMsg("❌ 名称不能为空");
+                hasError = true;
+            }
+            if (hasError) return;
 
             // parseFloat 把字符串转成数字；isNaN 判断是不是"不是数字"
             const price = parseFloat(priceText);
-            if (isNaN(price) || price < 0) { showMsg("❌ 单价必须是 ≥0 的数字"); return; }
+            if (isNaN(price) || price < 0) {
+                document.getElementById("f_price").classList.add("error");
+                showMsg("❌ 单价必须是 ≥0 的数字");
+                return;
+            }
 
             // 编号查重（修改时排除自己）
             for (let i = 0; i < books.length; i++) {
                 if (books[i].id === id && i !== editIndex) {
+                    document.getElementById("f_id").classList.add("error");
                     showMsg("❌ 编号已存在，请换一个");
                     return;
                 }
@@ -895,13 +1009,28 @@
         }
 
         function saveBorrow() {
+            // 清除之前的错误状态
+            ["b_borrower", "b_sid"].forEach(id => {
+                document.getElementById(id).classList.remove("error");
+            });
+            
             const b = books[borrowIndex];
             b.borrower = document.getElementById("b_borrower").value.trim();
             b.gender = document.getElementById("b_gender").value.trim();
             b.sid = document.getElementById("b_sid").value.trim();
 
-            if (!b.borrower) { showMsg("❌ 借书人不能为空"); return; }
-            if (!b.sid)      { showMsg("❌ 学号不能为空"); return; }
+            let hasError = false;
+            if (!b.borrower) {
+                document.getElementById("b_borrower").classList.add("error");
+                showMsg("❌ 借书人不能为空");
+                hasError = true;
+            }
+            if (!b.sid) {
+                document.getElementById("b_sid").classList.add("error");
+                showMsg("❌ 学号不能为空");
+                hasError = true;
+            }
+            if (hasError) return;
 
             b.status = 0;   // 0 = 已借出
             saveBooks();
