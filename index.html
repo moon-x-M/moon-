@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图书管理信息系统  网页版</title>
+    <style>
+        /* ==================== 全局样式 ==================== */
+        /* * 表示"所有元素"，去掉浏览器默认的外边距和内边距 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #f0f2f5;
+            --panel: #ffffff;
+            --panel-soft: #f4f8ff;
+            --header: #1e3a5f;
+            --text: #1f2937;
+            --muted: #6b7a90;
+            --line: #edf1f6;
+            --primary: #1e3a5f;
+            --primary-2: #1677ff;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --shadow: rgba(15, 23, 42, 0.06);
+        }
+
+        body.dark {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-soft: #172033;
+            --header: #0b1220;
+            --text: #e5edf9;
+            --muted: #93a4bc;
+            --line: #23314d;
+            --primary: #8ec5ff;
+            --primary-2: #7cc3ff;
+            --success: #5dd39e;
+            --warning: #f7bf63;
+            --danger: #ff7a7a;
+            --shadow: rgba(2, 6, 23, 0.42);
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
+            background: var(--bg);          /* 页面背景浅灰色 */
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.25s ease, color 0.25s ease;
+        }
+
+        /* ==================== 顶部标题栏 ==================== */
+        header {
+            background: var(--header);          /* 深蓝色 */
+            color: #fff;
+            padding: 20px 30px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        header h1 {
+            font-size: 26px;
+            letter-spacing: 2px;          /* 字间距 */
+        }
+        header p {
+            font-size: 13px;
+            opacity: 0.8;                 /* 半透明的小字 */
+            margin-top: 6px;
+        }
+
+        /* ==================== 主内容区 ==================== */
+        main {
+            max-width: 1100px;            /* 内容最大宽度，居中 */
+            margin: 25px auto;
+            padding: 0 15px 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 18px 18px 16px;
+            box-shadow: 0 8px 20px var(--shadow);
+        }
+
+        .stat-label {
+            color: #71829b;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            margin-top: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e3a5f;
+        }
+
+        .stat-detail {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #6b7a90;
+        }
+
+        /* ==================== 工具栏（按钮 + 查询 + 排序） ==================== */
+        .toolbar {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            display: flex;                /* flex 弹性布局，让子元素排一行 */
+            flex-wrap: wrap;              /* 一行放不下时自动换行 */
+            gap: 10px;                    /* 子元素之间的间距 */
+            align-items: center;
+            box-shadow: 0 8px 16px var(--shadow);
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* 按钮通用样式 */
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 9px 16px;
+            font-size: 14px;
+            cursor: pointer;              /* 鼠标悬停变成小手 */
+            transition: 0.15s;            /* 颜色变化有过渡动画 */
+            font-family: inherit;
+        }
+        button:hover {
+            filter: brightness(1.1);      /* 悬停时亮一点 */
+        }
+        button:active {
+            transform: scale(0.96);       /* 按下时稍微缩小，有按压感 */
+        }
+
+        /* 不同颜色的按钮 */
+        .btn-primary { background: #1e3a5f; color: #fff; }   /* 主按钮 深蓝 */
+        .btn-edit    { background: #1677ff; color: #fff; }   /* 修改 亮蓝 */
+        .btn-danger  { background: #e74c3c; color: #fff; }   /* 删除 红 */
+        .btn-borrow  { background: #f39c12; color: #fff; }   /* 借阅 橙 */
+        .btn-return  { background: #27ae60; color: #fff; }   /* 归还 绿 */
+        .btn-small   { padding: 5px 10px; font-size: 12px; } /* 小按钮（表格里用） */
+
+        /* 查询输入框 */
+        .toolbar input[type="text"] {
+            flex: 1;                      /* 占满剩余空间 */
+            min-width: 150px;
+            padding: 9px 12px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;                /* 去掉聚焦时的蓝色外框 */
+            background: var(--panel);
+            color: var(--text);
+        }
+        .toolbar input[type="text"]:focus {
+            border-color: var(--primary);        /* 聚焦时边框变深蓝 */
+        }
+
+        .toolbar .btn-secondary {
+            background: #eef4ff;
+            color: #254b7d;
+        }
+
+        body.dark .toolbar .btn-secondary {
+            background: #1f2f4b;
+            color: #d7ebff;
+        }
+
+        /* 排序下拉框 */
+        select {
+            padding: 9px 10px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--panel);
+            color: var(--text);
+            outline: none;
+        }
+
+        /* ==================== 图书表格 ==================== */
+        .table-wrap {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 15px 20px;
+            box-shadow: 0 1px 4px var(--shadow);
+            overflow-x: auto;             /* 表格太宽时可以横向滚动 */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;    /* 合并边框，让表格线不重叠 */
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--line);
+        }
+        thead th {
+            background: var(--panel-soft);
+            color: var(--muted);
+            font-weight: 600;
+        }
+        tbody tr:hover {
+            background: rgba(22, 119, 255, 0.04);          /* 鼠标悬停整行高亮 */
+        }
+
+        /* 状态标签：在馆=绿，已借出=橙 */
+        .tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .tag-in    { background: #e8f8ee; color: #27ae60; }
+        .tag-out   { background: #fdf3e2; color: #e67e22; }
+
+        /* 空数据提示 */
+        .empty-tip {
+            text-align: center;
+            color: #999;
+            padding: 30px 0;
+        }
+
+        /* ==================== 弹窗（模态框） ==================== */
+        /* .mask 是半透明遮罩层，覆盖整个屏幕 */
+        .mask {
+            display: none;                /* 默认隐藏 */
+            position: fixed;              /* 固定定位，不随页面滚动 */
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); /* 半透明黑色 */
+            z-index: 100;
+            justify-content: center;      /* 让弹窗水平居中 */
+            align-items: center;          /* 让弹窗垂直居中 */
+        }
+        /* 弹窗显示时加 .show 类 */
+        .mask.show { display: flex; }
+
+        /* 弹窗卡片本体 */
+        .dialog {
+            background: #fff;
+            border-radius: 12px;
+            padding: 25px 30px;
+            width: 420px;
+            max-width: 92vw;              /* 小屏幕上不超过屏幕宽度 */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        .dialog h3 {
+            margin-bottom: 18px;
+            color: #1e3a5f;
+            text-align: center;
+        }
+
+        /* 表单：每行一个"标签+输入框" */
+        .form-row {
+            margin-bottom: 12px;
+        }
+        .form-row label {
+            display: inline-block;
+            width: 70px;
+            font-size: 14px;
+            color: #555;
+        }
+        .form-row input {
+            width: calc(100% - 75px);
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .form-row input:focus {
+            border-color: #1e3a5f;
+        }
+
+        /* 弹窗底部按钮区 */
+        .dialog-btns {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .btn-cancel { background: #ddd; color: #333; }
+
+        .theme-toggle {
+            margin-left: auto;
+            background: rgba(255,255,255,0.12);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.18);
+            padding: 8px 12px;
+        }
+
+        .footer-bar {
+            margin-top: 18px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 12px;
+            padding-bottom: 12px;
+        }
+
+        /* 提示消息（操作成功/失败的反馈） */
+        #msg {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: none;                /* 默认隐藏 */
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== 顶部标题 ==================== -->
+    <header>
+        <h1>📚 图书管理信息系统</h1>
+        <p>网页版 · 数据保存在浏览器本地 · 由 C 语言版迁移而来</p>
+        <button class="theme-toggle" onclick="toggleTheme()">🌙 深色模式</button>
+    </header>
+
+    <!-- ==================== 主内容区 ==================== -->
+    <main>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">总图书</div>
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-detail">全部在库和借出记录</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">在馆</div>
+                <div class="stat-value" id="statAvailable">0</div>
+                <div class="stat-detail">可立即借阅数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">已借出</div>
+                <div class="stat-value" id="statBorrowed">0</div>
+                <div class="stat-detail">当前借阅中图书</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">总价值</div>
+                <div class="stat-value" id="statValue">¥0</div>
+                <div class="stat-detail">按单价累计统计</div>
+            </div>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="toolbar">
+            <div class="toolbar-group">
+                <button class="btn-primary" onclick="openAdd()">＋ 新进图书</button>
+                <button class="btn-secondary" onclick="resetBooks()">↺ 重置数据</button>
+            </div>
+            <input type="text" id="searchInput" placeholder="🔍 输入名称/编号/作者/借书人搜索…" oninput="render()">
+            <div class="toolbar-group">
+                <select id="statusSelect" onchange="render()">
+                    <option value="all">状态：全部</option>
+                    <option value="available">状态：在馆</option>
+                    <option value="borrowed">状态：已借出</option>
+                </select>
+                <select id="sortSelect" onchange="render()">
+                    <option value="none">排序：默认顺序</option>
+                    <option value="id">排序：按编号</option>
+                    <option value="name">排序：按名称</option>
+                    <option value="price">排序：按单价（低→高）</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 图书表格 -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>图书编号</th>
+                        <th>图书名称</th>
+                        <th>单价(元)</th>
+                        <th>作者</th>
+                        <th>状态</th>
+                        <th>借书人</th>
+                        <th>学号</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="bookTable">
+                    <!-- 表格内容由 JavaScript 动态生成 -->
+                </tbody>
+            </table>
+            <div id="emptyTip" class="empty-tip">暂无图书信息，点击「＋ 新进图书」开始录入</div>
+        </div>
+
+        <div class="footer-bar">图书管理系统 · 轻量前端版</div>
+    </main>
+
+    <!-- ==================== 弹窗 1：新增/修改图书 ==================== -->
+    <div class="mask" id="formMask">
+        <div class="dialog">
+            <h3 id="formTitle">新进图书录入</h3>
+            <div class="form-row">
+                <label>图书编号</label>
+                <input type="text" id="f_id" placeholder="必填，不能重复">
+            </div>
+            <div class="form-row">
+                <label>图书名称</label>
+                <input type="text" id="f_name" placeholder="必填">
+            </div>
+            <div class="form-row">
+                <label>单价</label>
+                <input type="text" id="f_price" placeholder="数字，如 22.00">
+            </div>
+            <div class="form-row">
+                <label>作者</label>
+                <input type="text" id="f_author" placeholder="可留空，默认填'佚名'">
+            </div>
+            <div class="dialog-btns">
+                <button class="btn-primary" onclick="saveForm()">保存</button>
+                <button class="btn-cancel" onclick="closeForm()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 弹窗 2：图书借阅 ==================== -->
+    <div class="mask" id="borrowMask">
+        <div class="dialog">
+            <h3>图书借阅登记</h3>
+            <div class="form-row">
+                <label>借书人</label>
+                <input type="text" id="b_borrower" placeholder="姓名">
+            </div>
+            <div class="form-row">
+                <label>性别</label>
+                <input type="text" id="b_gender" placeholder="男 / 女">
+            </div>
+            <div class="form-row">
+                <label>学号</label>
+                <input type="text" id="b_sid" placeholder="学号">
+            </div>
+            <div class="dialog-btns">
+                <button class="btn-borrow" onclick="saveBorrow()">确认借阅</button>
+                <button class="btn-cancel" onclick="closeBorrow()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="msg"></div>
+
+    <script>
+        /* ==========================================================
+         *  JavaScript 部分 —— 网站的全部逻辑
+         *  三个核心概念：
+         *   1. books 数组      —— 内存中的图书列表
+         *   2. localStorage    —— 浏览器本地存储，刷新/关网页后数据不丢
+         *   3. render()        —— 把 books 数组"画"成表格显示在页面上
+         * ========================================================== */
+
+        // 存储用的键名（localStorage 里数据的名字）
+        const STORAGE_KEY = "library_books";
+
+        const DEFAULT_BOOKS = [
+            { id: "B001", name: "高等数学", price: 36.5, author: "李老师", status: 1, borrower: "", gender: "", sid: "" },
+            { id: "B002", name: "JavaScript 程序设计", price: 48.8, author: "王教授", status: 0, borrower: "张三", gender: "男", sid: "20230001" },
+            { id: "B003", name: "数据库原理", price: 52, author: "赵老师", status: 1, borrower: "", gender: "", sid: "" },
+            { id: "B004", name: "软件工程", price: 41.2, author: "刘老师", status: 1, borrower: "", gender: "", sid: "" }
+        ];
+
+        // 图书数组。每本书是一个"对象"，相当于 C 语言里的结构体 Book
+        let books = [];
+
+        // 编辑模式标记：null=正在新增，数字=正在修改第几本书（下标）
+        let editIndex = null;
+
+        // 借阅操作正在处理的书的下标
+        let borrowIndex = null;
+
+        /* ---------- 数据持久化：保存与读取 ---------- */
+
+        // 把 books 数组保存到浏览器本地
+        function saveBooks() {
+            // JSON.stringify 把数组转成字符串才能存
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+        }
+
+        // 页面打开时，从浏览器本地读取之前保存的数据
+        function loadBooks() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) {
+                books = DEFAULT_BOOKS.slice();
+                saveBooks();
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(raw);
+                books = Array.isArray(parsed) ? parsed : DEFAULT_BOOKS.slice();
+            } catch (error) {
+                books = DEFAULT_BOOKS.slice();
+            }
+        }
+
+        function renderSummary() {
+            const total = books.length;
+            const available = books.filter(book => book.status === 1).length;
+            const borrowed = books.filter(book => book.status === 0).length;
+            const totalValue = books.reduce((sum, book) => sum + Number(book.price || 0), 0);
+
+            document.getElementById("statTotal").textContent = total;
+            document.getElementById("statAvailable").textContent = available;
+            document.getElementById("statBorrowed").textContent = borrowed;
+            document.getElementById("statValue").textContent = "¥" + totalValue.toFixed(2);
+        }
+
+        /* ---------- 表格渲染：把数据画到页面上 ---------- */
+
+        function resetBooks() {
+            if (!confirm("确认重置为默认示例数据？当前所有修改都会丢失。")) {
+                return;
+            }
+
+            books = DEFAULT_BOOKS.slice();
+            saveBooks();
+            render();
+            showMsg("♻️ 已恢复默认数据");
+        }
+
+        function render() {
+            const tbody = document.getElementById("bookTable");
+            const keyword = document.getElementById("searchInput").value.trim();
+            const sortType = document.getElementById("sortSelect").value;
+            const statusType = document.getElementById("statusSelect").value;
+
+            // 1) 先复制一份数组，避免直接改动原数据
+            let list = books.slice();
+
+            // 2) 状态筛选
+            if (statusType === "available") {
+                list = list.filter(book => book.status === 1);
+            } else if (statusType === "borrowed") {
+                list = list.filter(book => book.status === 0);
+            }
+
+            // 3) 查询过滤：关键词匹配 名称/编号/作者/借书人（大小写不敏感）
+            if (keyword) {
+                list = list.filter(function (b) {
+                    return (b.name + b.id + b.author + b.borrower)
+                        .toLowerCase().includes(keyword.toLowerCase());
+                });
+            }
+
+            // 4) 排序
+            if (sortType === "id") {
+                list.sort(function (a, b) { return a.id.localeCompare(b.id); });
+            } else if (sortType === "name") {
+                list.sort(function (a, b) { return a.name.localeCompare(b.name, "zh"); });
+            } else if (sortType === "price") {
+                list.sort(function (a, b) { return a.price - b.price; });
+            }
+
+            // 4) 生成表格的 HTML 字符串，逐行拼接
+            let html = "";
+            for (let i = 0; i < list.length; i++) {
+                const b = list[i];
+                // 找到这本书在原数组 books 里的真正下标（用于修改/删除/借阅）
+                const realIndex = books.indexOf(b);
+                // 状态显示
+                const statusHtml = b.status === 1
+                    ? '<span class="tag tag-in">在馆</span>'
+                    : '<span class="tag tag-out">已借出</span>';
+                // 借书人显示（没有就显示 -）
+                const borrower = b.borrower || "-";
+                const sid = b.sid || "-";
+
+                html += "<tr>" +
+                    "<td>" + escapeHtml(b.id) + "</td>" +
+                    "<td>" + escapeHtml(b.name) + "</td>" +
+                    "<td>" + b.price.toFixed(2) + "</td>" +
+                    "<td>" + escapeHtml(b.author) + "</td>" +
+                    "<td>" + statusHtml + "</td>" +
+                    "<td>" + escapeHtml(borrower) + "</td>" +
+                    "<td>" + escapeHtml(sid) + "</td>" +
+                    "<td>" +
+                        (b.status === 1
+                            ? '<button class="btn-borrow btn-small" onclick="openBorrow(' + realIndex + ')">借阅</button> '
+                            : '<button class="btn-return btn-small" onclick="doReturn(' + realIndex + ')">归还</button> ') +
+                        '<button class="btn-edit btn-small" onclick="openEdit(' + realIndex + ')">修改</button> ' +
+                        '<button class="btn-danger btn-small" onclick="doDelete(' + realIndex + ')">删除</button>' +
+                    "</td>" +
+                    "</tr>";
+            }
+
+            tbody.innerHTML = html;
+            renderSummary();
+
+            // 5) 没有数据时显示提示文字
+            document.getElementById("emptyTip").style.display =
+                list.length === 0 ? "block" : "none";
+        }
+
+        /* ---------- 安全工具：转义 HTML 特殊字符 ---------- */
+        // 防止书名里输入 <script> 之类的内容破坏页面（防 XSS）
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;");
+        }
+
+        /* ---------- 顶部提示消息 ---------- */
+
+        function showMsg(text) {
+            const el = document.getElementById("msg");
+            el.textContent = text;
+            el.style.display = "block";
+            // 2 秒后自动隐藏
+            clearTimeout(showMsg.timer);
+            showMsg.timer = setTimeout(function () {
+                el.style.display = "none";
+            }, 2000);
+        }
+
+        /* ---------- 弹窗控制 ---------- */
+
+        function openAdd() {
+            editIndex = null;
+            document.getElementById("formTitle").textContent = "新进图书录入";
+            // 清空表单
+            document.getElementById("f_id").value = "";
+            document.getElementById("f_name").value = "";
+            document.getElementById("f_price").value = "";
+            document.getElementById("f_author").value = "";
+            document.getElementById("formMask").classList.add("show");
+        }
+
+        function openEdit(i) {
+            editIndex = i;
+            document.getElementById("formTitle").textContent = "修改图书信息";
+            // 把当前数据填进表单
+            const b = books[i];
+            document.getElementById("f_id").value = b.id;
+            document.getElementById("f_name").value = b.name;
+            document.getElementById("f_price").value = b.price;
+            document.getElementById("f_author").value = b.author;
+            document.getElementById("formMask").classList.add("show");
+        }
+
+        function closeForm() {
+            document.getElementById("formMask").classList.remove("show");
+        }
+
+        function openBorrow(i) {
+            borrowIndex = i;
+            document.getElementById("b_borrower").value = "";
+            document.getElementById("b_gender").value = "";
+            document.getElementById("b_sid").value = "";
+            document.getElementById("borrowMask").classList.add("show");
+        }
+
+        function closeBorrow() {
+            document.getElementById("borrowMask").classList.remove("show");
+        }
+
+        // 点击遮罩层（弹窗外的黑色区域）也能关闭弹窗
+        document.getElementById("formMask").addEventListener("click", function (e) {
+            if (e.target === this) closeForm();
+        });
+        document.getElementById("borrowMask").addEventListener("click", function (e) {
+            if (e.target === this) closeBorrow();
+        });
+
+        /* ---------- 核心业务：增删改查、借还、排序 ---------- */
+
+        // 新增 / 修改共用这个保存函数
+        function saveForm() {
+            // 读取表单输入
+            const id = document.getElementById("f_id").value.trim();
+            const name = document.getElementById("f_name").value.trim();
+            const priceText = document.getElementById("f_price").value.trim();
+            let author = document.getElementById("f_author").value.trim();
+
+            // 校验
+            if (!id)   { showMsg("❌ 编号不能为空"); return; }
+            if (!name) { showMsg("❌ 名称不能为空"); return; }
+
+            // parseFloat 把字符串转成数字；isNaN 判断是不是"不是数字"
+            const price = parseFloat(priceText);
+            if (isNaN(price) || price < 0) { showMsg("❌ 单价必须是 ≥0 的数字"); return; }
+
+            // 编号查重（修改时排除自己）
+            for (let i = 0; i < books.length; i++) {
+                if (books[i].id === id && i !== editIndex) {
+                    showMsg("❌ 编号已存在，请换一个");
+                    return;
+                }
+            }
+
+            if (!author) author = "佚名";
+
+            if (editIndex === null) {
+                // 新增：push 把新对象追加到数组末尾
+                books.push({
+                    id: id,
+                    name: name,
+                    price: price,
+                    author: author,
+                    status: 1,        // 新书默认"在馆"
+                    borrower: "",
+                    gender: "",
+                    sid: ""
+                });
+                showMsg("✅ 录入成功");
+            } else {
+                // 修改：直接更新原对象
+                const b = books[editIndex];
+                b.id = id;
+                b.name = name;
+                b.price = price;
+                b.author = author;
+                showMsg("✅ 修改成功");
+            }
+
+            saveBooks();
+            closeForm();
+            render();
+        }
+
+        function doDelete(i) {
+            const b = books[i];
+            // confirm 弹出确认框，用户点"确定"才继续
+            if (confirm("确认删除《" + b.name + "》？")) {
+                books.splice(i, 1);   // splice 从数组中删除第 i 个元素
+                saveBooks();
+                render();
+                showMsg("🗑 已删除");
+            }
+        }
+
+        function saveBorrow() {
+            const b = books[borrowIndex];
+            b.borrower = document.getElementById("b_borrower").value.trim();
+            b.gender = document.getElementById("b_gender").value.trim();
+            b.sid = document.getElementById("b_sid").value.trim();
+
+            if (!b.borrower) { showMsg("❌ 借书人不能为空"); return; }
+            if (!b.sid)      { showMsg("❌ 学号不能为空"); return; }
+
+            b.status = 0;   // 0 = 已借出
+            saveBooks();
+            closeBorrow();
+            render();
+            showMsg("📖 《" + b.name + "》已借给 " + b.borrower);
+        }
+
+        function doReturn(i) {
+            const b = books[i];
+            b.status = 1;   // 1 = 在馆
+            b.borrower = "";
+            b.gender = "";
+            b.sid = "";
+            saveBooks();
+            render();
+            showMsg("↩ 《" + b.name + "》已归还");
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            const isDark = body.classList.toggle("dark");
+            localStorage.setItem("library_theme", isDark ? "dark" : "light");
+            const btn = document.querySelector(".theme-toggle");
+            btn.textContent = isDark ? "☀️ 浅色模式" : "🌙 深色模式";
+        }
+
+        /* ---------- 页面加载时启动 ---------- */
+        // window.onload：等页面元素全部加载完再执行
+        window.onload = function () {
+            const savedTheme = localStorage.getItem("library_theme");
+            if (savedTheme === "dark") {
+                document.body.classList.add("dark");
+            }
+
+            const btn = document.querySelector(".theme-toggle");
+            btn.textContent = document.body.classList.contains("dark") ? "☀️ 浅色模式" : "🌙 深色模式";
+
+            loadBooks();   // 读取本地保存的数据
+            render();      // 渲染表格
+        };
+    </script>
+</body>
+</html>
