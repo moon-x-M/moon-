@@ -87,6 +87,22 @@
             height: 100vh;
             box-shadow: 2px 0 18px rgba(0,0,0,0.12);
         }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        .logo-section img {
+            max-width: 100%;
+            height: auto;
+            max-height: 80px;
+            object-fit: contain;
+        }
 
         .brand {
             font-size: 24px;
@@ -513,6 +529,9 @@
 <body>
     <div class="app-shell">
         <aside class="sidebar">
+            <div class="logo-section">
+                <img src="images/logo.jpg" alt="河南理工大学" title="河南理工大学">
+            </div>
             <div class="brand">📚 Moon</div>
             <div class="nav-item active">📊 主页</div>
             <div class="nav-item">📖 图书列表</div>
